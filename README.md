@@ -1,0 +1,42 @@
+# 项目结构说明
+
+本项目按数据与代码分层组织，便于实验、服务与处理脚本协同开发。
+
+## 目录
+- data/：存放数据脚本或少量示例数据（大数据集不纳入版本库）
+- notebooks/：存放 .ipynb 实验代码与探索性笔记
+- src/：源代码
+  - api/：FastAPI 相关代码
+  - processing/：数据处理脚本
+
+## 使用建议
+- 将体积较大的数据、敏感信息放在 data/ 并通过 .gitignore 忽略，保留占位文件 .gitkeep 以便提交目录结构
+- notebooks 中的检查点目录已忽略，建议定期导出关键结果到 README 或文档
+- 在 src 中分别维护服务与处理逻辑，保持模块边界清晰
+
+## 环境与依赖
+- 建议使用虚拟环境：.venv/ 或 venv/（已在 .gitignore 中忽略）
+- 常见的临时文件与日志已默认忽略，可按需扩展 .gitignore
+
+## 快速开始
+- 安装依赖：
+  
+  ```bash
+  python -m venv .venv
+  source .venv/bin/activate
+  pip install -r requirements.txt
+  ```
+  
+- 加载 Lunara Aesthetic 并导出示例：
+  
+  ```bash
+  python src/processing/lunara_loader.py --sample-size 100 --sample-out data/lunara_sample.jsonl
+  ```
+  
+- 直接在代码中使用：
+  
+  ```python
+  from datasets import load_dataset
+  ds = load_dataset("moonworks/lunara-aesthetic")
+  ```
+# Text-to-lmage-Generation-Model-Based-on-Fine---Tuned-Stable-Diffusion-v1.5
