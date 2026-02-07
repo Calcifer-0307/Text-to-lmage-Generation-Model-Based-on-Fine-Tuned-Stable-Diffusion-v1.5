@@ -39,4 +39,28 @@
   from datasets import load_dataset
   ds = load_dataset("moonworks/lunara-aesthetic")
   ```
+
+## 数据检查与报告
+- 生成数据检查报告（JSON）：
+  
+  ```bash
+  .venv/bin/python scripts/data_check.py --split 'train[:100]' --sample-size 100 --cache-dir ./data --out data/lunara_check_report.json
+  ```
+  
+- 将 JSON 报告渲染为 Markdown，并生成频次可视化图：
+  
+  ```bash
+  .venv/bin/python scripts/report_render.py --input data/lunara_check_report.json --out data/lunara_check_report.md --fig-dir data/report_figs
+  ```
+  
+- 直接运行渲染脚本（无参数）：若 JSON 不存在，将自动执行一次数据检查并生成报告与图表
+  
+  ```bash
+  .venv/bin/python scripts/report_render.py
+  ```
+  
+- 输出说明：
+  - 报告文件：data/lunara_check_report.md
+  - 图像目录：data/report_figs/
+  - 报告与图表采用英文显示，便于跨平台阅读
 # Text-to-lmage-Generation-Model-Based-on-Fine---Tuned-Stable-Diffusion-v1.5
