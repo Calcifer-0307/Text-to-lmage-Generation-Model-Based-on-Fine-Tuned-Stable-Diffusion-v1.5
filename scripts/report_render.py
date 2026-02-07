@@ -41,12 +41,13 @@ def table_md(dist: Dict[str, int], header: Tuple[str, str]) -> str:
 
 def render_markdown(data: Dict[str, Any], fig_dir: str) -> Tuple[str, List[str]]:
     ensure_dir(fig_dir)
-    cat_png = os.path.join(fig_dir, "category_distribution.png")
-    reg_png = os.path.join(fig_dir, "region_distribution.png")
-    top_png = os.path.join(fig_dir, "topic_distribution.png")
-    plot_bar(data.get("category_distribution", {}), "Category Distribution", cat_png)
-    plot_bar(data.get("region_distribution", {}), "Region Distribution", reg_png)
-    plot_bar(data.get("topic_distribution", {}), "Topic Distribution", top_png)
+
+    c_cat_png = os.path.join(fig_dir, "corrected_category_distribution.png")
+    c_reg_png = os.path.join(fig_dir, "corrected_region_distribution.png")
+    c_top_png = os.path.join(fig_dir, "corrected_topic_distribution.png")
+    plot_bar(data.get("corrected_category_distribution", {}), "Corrected Category Distribution", c_cat_png)
+    plot_bar(data.get("corrected_region_distribution", {}), "Corrected Region Distribution", c_reg_png)
+    plot_bar(data.get("corrected_topic_distribution", {}), "Corrected Topic Distribution", c_top_png)
     lines: List[str] = []
     lines.append(f"# Data Check Report")
     lines.append("")
@@ -64,28 +65,34 @@ def render_markdown(data: Dict[str, Any], fig_dir: str) -> Tuple[str, List[str]]
     lines.append(f"- Width: min={im.get('min_width')} max={im.get('max_width')} avg={im.get('avg_width')}")
     lines.append(f"- Height: min={im.get('min_height')} max={im.get('max_height')} avg={im.get('avg_height')}")
     lines.append("")
-    lines.append("## Category Distribution")
-    lines.append(f"![Category Distribution]({cat_png})")
-    lines.append("")
-    lines.append(table_md(data.get("category_distribution", {}), ("Category", "Count")))
-    lines.append("")
-    lines.append("## Region Distribution")
-    lines.append(f"![Region Distribution]({reg_png})")
-    lines.append("")
-    lines.append(table_md(data.get("region_distribution", {}), ("Region", "Count")))
-    lines.append("")
-    lines.append("## Topic Distribution")
-    lines.append(f"![Topic Distribution]({top_png})")
-    lines.append("")
-    lines.append(table_md(data.get("topic_distribution", {}), ("Topic", "Count")))
-    lines.append("")
-    lines.append("## Missing & Invalid Stats")
-    lines.append("```json")
-    lines.append(json.dumps({"missing_counts": data.get("missing_counts", {}), "invalid_counts": data.get("invalid_counts", {})}, ensure_ascii=False, indent=2))
-    lines.append("```")
-    md_content = "\n".join(lines)
-    return md_content, [cat_png, reg_png, top_png]
 
+    lines.append("## Corrected Category Distribution")
+    lines.append(f"![Corrected Category Distribution]({c_cat_png})")
+    lines.append("")
+    lines.append(table_md(data.get("corrected_category_distribution", {}), ("Category", "Count")))
+    lines.append("")
+    lines.append("## Corrected Region Distribution")
+    lines.append(f"![Corrected Region Distribution]({c_reg_png})")
+    lines.append("")
+    lines.append(table_md(data.get("corrected_region_distribution", {}), ("Region", "Count")))
+    lines.append("")
+    lines.append("## Corrected Topic Distribution")
+    lines.append(f"![Corrected Topic Distribution]({c_top_png})")
+    lines.append("")
+    lines.append(table_md(data.get("corrected_topic_distribution", {}), ("Topic", "Count")))
+    lines.append("")
+    lines.append("## Applied Corrections")
+    corr_stats = data.get("correction_stats", [])
+    if not corr_stats:
+        lines.append("_No corrections applied_")
+    else:
+        lines.append("| Field | From | To | Count |")
+        lines.append("|---|---|---|---:|")
+        for it in corr_stats:
+            lines.append(f"| {it.get('field')} | {it.get('from')} | {it.get('to')} | {it.get('count')} |")
+    lines.append("")
+    md_content = "\n".join(lines)
+    return md_content, [c_cat_png, c_reg_png, c_top_png]
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default="data/lunara_check_report.json", type=str)
@@ -100,11 +107,11 @@ def main() -> None:
         report["schema_missing"] = missing
         save_report(args.input, report)
     data = load_json(args.input)
-    md, _ = render_markdown(data, args.fig_dir)
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as f:
+        md, _ = render_markdown(data, args.fig_dir)
         f.write(md)
-    print(f"已生成 Markdown 报告: {args.out}，图像目录: {args.fig_dir}")
+    print(f"Generated Markdown report: {args.out}, figures: {args.fig_dir}")
 
 if __name__ == "__main__":
     main()

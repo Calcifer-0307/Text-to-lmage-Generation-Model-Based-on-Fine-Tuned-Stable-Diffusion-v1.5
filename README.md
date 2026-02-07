@@ -63,4 +63,21 @@
   - 报告文件：data/lunara_check_report.md
   - 图像目录：data/report_figs/
   - 报告与图表采用英文显示，便于跨平台阅读
+
+## 永久拼写订正
+- 生成并保存全量订正后的标签 CSV 与摘要：
+  
+  ```bash
+  .venv/bin/python scripts/data_correct.py --split train --cache-dir ./data --out-csv data/lunara_corrected_labels.csv --summary data/lunara_correction_summary.json
+  ```
+  
+- 订正逻辑：
+  - 自动识别高相似且高频的标签作为建议项（如 digitial -> digital）
+  - 输出订正映射、订正后分布与订正明细（correction_stats）
+  
+- 渲染仅包含“修正后”报告与图表：
+  
+  ```bash
+  .venv/bin/python scripts/report_render.py --input data/lunara_check_report.json --out data/lunara_check_report.md --fig-dir data/report_figs
+  ```
 # Text-to-lmage-Generation-Model-Based-on-Fine---Tuned-Stable-Diffusion-v1.5

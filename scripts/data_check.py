@@ -4,6 +4,7 @@ import argparse
 from collections import Counter
 from statistics import mean
 from typing import Dict, Any, List, Tuple
+from difflib import SequenceMatcher
 from datasets import load_dataset
 from PIL import Image
 
@@ -90,6 +91,71 @@ def analyze(ds: Any, sample_size: int) -> Dict[str, Any]:
     report["issues"] = issues
     return report
 
+def _spelling_suspects(dist: Dict[str, int]) -> List[Dict[str, Any]]:
+    items = sorted(dist.items(), key=lambda x: x[1], reverse=True)
+    suspects: List[Dict[str, Any]] = []
+    if not items:
+        return suspects
+    top_counts = {label: count for label, count in items[:max(5, len(items))]}
+    for label, count in items:
+        if count == 0:
+            continue
+        for cand, ccount in top_counts.items():
+            if cand == label:
+                continue
+            ratio = SequenceMatcher(None, label.lower(), cand.lower()).ratio()
+            if ratio >= 0.88 and ccount >= max(2, count * 2):
+                suspects.append({
+                    "value": label,
+                    "count": count,
+                    "suggest": cand,
+                    "suggest_count": ccount,
+                    "similarity": round(ratio, 3),
+                })
+                break
+    return suspects
+
+def _build_correction_map(suspects: List[Dict[str, Any]]) -> Dict[str, str]:
+    mapping: Dict[str, str] = {}
+    for it in suspects:
+        src = it.get("value")
+        dst = it.get("suggest")
+        if isinstance(src, str) and isinstance(dst, str):
+            mapping[src] = dst
+    return mapping
+
+def apply_corrections(ds: Any, size: int, correction_map: Dict[str, Dict[str, str]]) -> Tuple[Dict[str, int], Dict[str, int], Dict[str, int], List[Dict[str, Any]]]:
+    cat_counts = Counter()
+    reg_counts = Counter()
+    top_counts = Counter()
+    corr_stats: Counter = Counter()
+    for i in range(size):
+        row = ds[i]
+        category = row.get("category")
+        region = row.get("region")
+        topic = row.get("topic")
+        if isinstance(category, str):
+            new_cat = correction_map.get("category", {}).get(category, category)
+            if new_cat != category:
+                corr_stats[f"category:{category}->{new_cat}"] += 1
+            cat_counts[new_cat] += 1
+        if isinstance(region, str):
+            new_reg = correction_map.get("region", {}).get(region, region)
+            if new_reg != region:
+                corr_stats[f"region:{region}->{new_reg}"] += 1
+            reg_counts[new_reg] += 1
+        if isinstance(topic, str):
+            new_top = correction_map.get("topic", {}).get(topic, topic)
+            if new_top != topic:
+                corr_stats[f"topic:{topic}->{new_top}"] += 1
+            top_counts[new_top] += 1
+    corr_list: List[Dict[str, Any]] = []
+    for key, cnt in corr_stats.items():
+        field, pair = key.split(":", 1)
+        src, dst = pair.split("->", 1)
+        corr_list.append({"field": field, "from": src, "to": dst, "count": cnt})
+    return dict(cat_counts), dict(reg_counts), dict(top_counts), corr_list
+
 def save_report(path: str, content: Dict[str, Any]) -> None:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
@@ -97,18 +163,36 @@ def save_report(path: str, content: Dict[str, Any]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--split", default="train[:100]", type=str)
-    parser.add_argument("--sample-size", default=100, type=int)
+    parser.add_argument("--split", default="train", type=str)
+    parser.add_argument("--sample-size", default=-1, type=int)
     parser.add_argument("--cache-dir", default="./data", type=str)
     parser.add_argument("--out", default="data/lunara_check_report.json", type=str)
     args = parser.parse_args()
     ds = load(args.split, args.cache_dir)
     schema_ok, missing = check_schema(ds.column_names)
-    report = analyze(ds, args.sample_size)
+    size = len(ds) if args.sample_size is None or args.sample_size < 0 else args.sample_size
+    report = analyze(ds, size)
     report["schema_ok"] = schema_ok
     report["schema_missing"] = missing
+    spelling = {
+        "category": _spelling_suspects(report["category_distribution"]),
+        "region": _spelling_suspects(report["region_distribution"]),
+        "topic": _spelling_suspects(report["topic_distribution"]),
+    }
+    report["spelling_suspects"] = spelling
+    correction_map = {
+        "category": _build_correction_map(spelling["category"]),
+        "region": _build_correction_map(spelling["region"]),
+        "topic": _build_correction_map(spelling["topic"]),
+    }
+    report["correction_map"] = correction_map
+    c_cat, c_reg, c_top, c_stats = apply_corrections(ds, size, correction_map)
+    report["corrected_category_distribution"] = c_cat
+    report["corrected_region_distribution"] = c_reg
+    report["corrected_topic_distribution"] = c_top
+    report["correction_stats"] = c_stats
     save_report(args.out, report)
-    print(f"已检查 {report['checked_rows']} 条样本，schema_ok={report['schema_ok']}，报告已保存到 {args.out}")
+    print(f"已检查 {report['checked_rows']} 条样本（全量={size==len(ds)}），schema_ok={report['schema_ok']}，报告已保存到 {args.out}")
 
 if __name__ == "__main__":
     main()
