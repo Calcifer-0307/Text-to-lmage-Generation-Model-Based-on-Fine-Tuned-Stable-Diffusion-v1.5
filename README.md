@@ -86,5 +86,3 @@
   - 图像目录：report_figs/
   - 报告内图片链接为绝对 file:// 路径，跨查看器可用
 # Text-to-lmage-Generation-Model-Based-on-Fine---Tuned-Stable-Diffusion-v1.5
-
-# Shealyn到此一游
