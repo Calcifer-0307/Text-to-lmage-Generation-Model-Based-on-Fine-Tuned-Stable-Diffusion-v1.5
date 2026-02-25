@@ -3,6 +3,7 @@ import os
 import csv
 from typing import Dict, Any, List
 from datasets import load_dataset
+import glob
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Merge corrected CSV labels into HF dataset loaded from local cache and save to disk.")
@@ -10,6 +11,7 @@ def parse_args():
     parser.add_argument("--cache-dir", type=str, required=True, help="HF datasets cache dir containing moonworks/lunara-aesthetic.")
     parser.add_argument("--output-dir", type=str, required=True, help="Directory to save the merged dataset (save_to_disk).")
     parser.add_argument("--revision", type=str, default="851305085843a2b2d96ea0d44904bc54a670c5f4", help="Hub revision hash to pin the original dataset snapshot.")
+    parser.add_argument("--offline", action="store_true", help="Load strictly from local cache without contacting Hub.")
     return parser.parse_args()
 
 def load_corrections(csv_path: str) -> Dict[int, Dict[str, Any]]:
@@ -44,7 +46,19 @@ def main():
 
     # 2) Load original dataset from local cache
     print(f"Loading dataset from cache dir {args.cache_dir} (revision {args.revision}) ...")
-    ds = load_dataset("moonworks/lunara-aesthetic", split="train", cache_dir=args.cache_dir, revision=args.revision)
+    if args.offline:
+        os.environ["HF_DATASETS_OFFLINE"] = "1"
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        parquet_files = sorted(glob.glob(os.path.join(args.cache_dir, "**", "train-*-of-*.parquet"), recursive=True))
+        arrow_files = sorted(glob.glob(os.path.join(args.cache_dir, "**", "*.arrow"), recursive=True))
+        if parquet_files:
+            ds = load_dataset("parquet", data_files=parquet_files, split="train")
+        elif arrow_files:
+            ds = load_dataset("arrow", data_files=arrow_files, split="train")
+        else:
+            raise FileNotFoundError("No local shards (.parquet or .arrow) found in cache-dir while offline.")
+    else:
+        ds = load_dataset("moonworks/lunara-aesthetic", split="train", cache_dir=args.cache_dir, revision=args.revision, download_mode="reuse_cache_if_exists")
     print(f"Dataset loaded: {len(ds)} rows.")
 
     # 3) Apply corrections by index
