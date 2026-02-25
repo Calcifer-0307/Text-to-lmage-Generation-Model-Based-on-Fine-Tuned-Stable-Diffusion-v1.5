@@ -78,6 +78,11 @@
 - 渲染仅包含“修正后”报告与图表：
   
   ```bash
-  .venv/bin/python scripts/report_render.py --input data/lunara_check_report.json --out data/lunara_check_report.md --fig-dir data/report_figs
+.venv/bin/python scripts/report_render.py --input data/lunara_check_report.json --out data/lunara_check_report.md --fig-dir report_figs
   ```
+
+- 输出说明：
+  - 报告文件：data/lunara_check_report.md
+  - 图像目录：report_figs/
+  - 报告内图片链接为绝对 file:// 路径，跨查看器可用
 # Text-to-lmage-Generation-Model-Based-on-Fine---Tuned-Stable-Diffusion-v1.5
