@@ -42,7 +42,7 @@ def build_suspects(dist: Dict[str, int]) -> List[Dict[str, Any]]:
                 break
     return suspects
 
-def build_correction_map(dists: Dict[str, Dict[str, int]]) -> Dict[str, Dict[str, str]]:
+def build_correction_map(dists: Dict[str, int]) -> Dict[str, Dict[str, str]]:
     mapping: Dict[str, Dict[str, str]] = {"category": {}, "region": {}, "topic": {}}
     for field in ["category", "region", "topic"]:
         sus = build_suspects(dists[field])
