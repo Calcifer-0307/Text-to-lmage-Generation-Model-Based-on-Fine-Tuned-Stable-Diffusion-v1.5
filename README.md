@@ -66,3 +66,18 @@
    from datasets import load_from_disk
    dataset = load_from_disk("data/lunara_final_dataset_rev")
    ```
+
+## 模型推理测试
+
+项目包含一个简单的 Stable Diffusion 前向推理测试脚本，可用于验证环境配置与基础生成能力。
+
+### 运行推理测试
+
+   ```bash
+   .venv/bin/python scripts/training/test_forward.py
+   ```
+
+   该脚本将：
+   根据设置的提示词生成图像，保存到output/test_output.png
+   
+   首次运行需要下载模型，需要一些时间；推理也需要一些时间。需要耐心等待
