@@ -1,6 +1,7 @@
 from diffusers import StableDiffusionPipeline
 import torch
 from PIL import Image
+import os
 
 # use cuda or tps if available
 device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
