@@ -6,3 +6,4 @@ torchvision>=0.15.0
 transformers>=4.30.0
 diffusers>=0.21.0
 accelerate>=0.20.0
+PIL>=10.3.0
