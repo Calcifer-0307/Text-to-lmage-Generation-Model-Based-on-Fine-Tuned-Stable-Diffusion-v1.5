@@ -127,7 +127,7 @@
 #### 理解模型组件
 
    ```bash
-   python scripts/model_verification/forward_components.py
+   .venv/bin/python scripts/model_verification/forward_components.py
    ```
 
    该脚本详细讲解：
@@ -142,5 +142,5 @@
    运行数据适配测试
 
    ```bash
-   python scripts/fine_tuning/dataset_adapter.py
+   .venv/bin/python scripts/fine_tuning/dataset_adapter.py
    ```
