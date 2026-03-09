@@ -116,7 +116,7 @@
 #### 运行推理测试
 
    ```bash
-   .venv/bin/python scripts/training/test_forward.py
+   python scripts/model_verification/test_forward.py
    ```
 
    该脚本将：
@@ -127,7 +127,7 @@
 #### 理解模型组件
 
    ```bash
-   .venv/bin/python scripts/model_verification/forward_components.py
+   python scripts/model_verification/forward_components.py
    ```
 
    该脚本详细讲解：
