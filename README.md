@@ -142,5 +142,5 @@
    运行数据适配测试
 
    ```bash
-   .venv/bin/python scripts/fine_tuning/dataset_adapter.py
+   python scripts/fine_tuning/dataset_adapter.py
    ```
