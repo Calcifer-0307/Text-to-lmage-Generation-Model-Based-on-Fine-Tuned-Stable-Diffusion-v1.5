@@ -251,8 +251,8 @@ if __name__ == "__main__":
             # 验证数据类型
             assert batch['pixel_values'].dtype == torch.float32, "pixel_values 应该是 float32"
             assert batch['input_ids'].dtype == torch.long, "input_ids 应该是 long"
-            assert batch['pixel_values'].shape == (2, 3, 512, 512), "pixel_values 形状不对"
-            assert batch['input_ids'].shape == (2, 77), "input_ids 形状不对"
+            assert batch['pixel_values'].shape == (2, 3, 512, 512), "pixel_values 形状不对"  # input image B, C, H, W
+            assert batch['input_ids'].shape == (2, 77), "input_ids 形状不对"                 # input text  B, seq_len
             
             print("\n   ✅ 形状和数据类型验证通过！")
             
