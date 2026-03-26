@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lunara Real-time Test</title>
+    <style>
+        #log-panel { height: 150px; overflow-y: scroll; background: #eee; font-size: 12px; margin-top: 10px; padding: 10px; border: 1px solid #ccc; }
+        #progress-container { width: 512px; height: 20px; background: #ddd; margin-top: 10px; position: relative; }
+        #progress-bar { width: 0%; height: 100%; background: #4CAF50; transition: width 0.1s; }
+    </style>
+</head>
+<body>
+    <h2> Real time Image Generation</h2>
+    <input type="text" id="prompt" value="Coastal cottage, golden hour, oil painting" style="width:400px">
+    <button onclick="generate()">Start painting</button>
+    
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+    <div id="status">Status: Waiting</div>
+
+    <div style="display: flex; gap: 20px; margin-top: 10px;">
+        <div>
+            <h4>Current Canvas (Real-time Update)</h4>
+            <img id="preview" style="width:512px; height:512px; border:2px solid #333; background: #000;">
+        </div>
+        <div style="flex: 1;">
+            <h4>Communication Log</h4>
+            <div id="log-panel"></div>
+        </div>
+    </div>
+
+    <script>
+        function addLog(msg) {
+            const panel = document.getElementById("log-panel");
+            panel.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}<br>`;
+            panel.scrollTop = panel.scrollHeight;
+        }
+
+        function generate() {
+            // 每次点击清空状态
+            document.getElementById("preview").src = "";
+            document.getElementById("progress-bar").style.width = "0%";
+            addLog("Connecting to server...");
+
+            const ws = new WebSocket("ws://localhost:8000/ws/generate");
+            
+            ws.onopen = () => {
+                const prompt = document.getElementById("prompt").value;
+                ws.send(JSON.stringify({prompt: prompt, seed: 42}));
+                addLog("Connection established, sent prompt: " + prompt);
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === "progress") {
+                    addLog(`Received progress: ${data.value}%`);
+                    document.getElementById("status").innerText = `Status: Denoising (${data.value}%)`;
+                    document.getElementById("progress-bar").style.width = data.value + "%";
+                    
+                    if (data.preview) {
+                        addLog("Received intermediate preview image");
+                        document.getElementById("preview").src = data.preview;
+                    }
+                } else if (data.type === "final") {
+                    addLog("✨ Received final high-resolution image!");
+                    document.getElementById("status").innerText = "Status: Generation complete";
+                    document.getElementById("progress-bar").style.width = "100%";
+                    document.getElementById("preview").src = data.image;
+                    ws.close();
+                }
+            };
+
+            ws.onerror = (err) => {
+                addLog("WebSocket error: " + err.message);
+                console.error(err);
+            };
+        }
+    </script>
+</body>
+</html>
