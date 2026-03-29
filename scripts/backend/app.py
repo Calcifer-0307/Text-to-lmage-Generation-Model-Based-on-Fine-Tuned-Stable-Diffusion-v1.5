@@ -107,7 +107,7 @@ async def websocket_generate(websocket: WebSocket):
         # to match the frontend's current single-image view.
         num_images = data.get("num_images_per_prompt", 1)
         
-        final_image = await run_in_threadpool(
+        final_images = await run_in_threadpool(
             engine.generate, 
             prompt=prompt, 
             num_steps=num_steps,
@@ -117,13 +117,16 @@ async def websocket_generate(websocket: WebSocket):
             loop=loop
         )
 
-        buffered = io.BytesIO()
-        final_image.save(buffered, format="PNG")
-        final_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        final_b64_images = []
+        for img in final_images:
+            buffered = io.BytesIO()
+            img.save(buffered, format="PNG")
+            final_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+            final_b64_images.append(f"data:image/png;base64,{final_b64}")
         
         await websocket.send_json({
             "type": "final",
-            "image": f"data:image/png;base64,{final_b64}"
+            "images": final_b64_images
         })
 
     except WebSocketDisconnect:
