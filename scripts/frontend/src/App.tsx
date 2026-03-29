@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Loader2, Download, Image as ImageIcon, Sparkles, Settings2, XCircle, MessageSquarePlus, MessageSquare, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Loader2, Download, Image as ImageIcon, Sparkles, Settings2, XCircle, MessageSquarePlus, MessageSquare, Menu, PanelLeftClose, PanelLeftOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -9,7 +9,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 interface GenerateResponse {
-  image: string; // base64
+  images: string[]; // 改为数组以支持多图
   prompt: string;
   params: any;
 }
@@ -17,7 +17,7 @@ interface GenerateResponse {
 interface HistoryItem {
   id: string;
   prompt: string;
-  image: string;
+  images: string[]; // 改为数组
   timestamp: number;
 }
 
@@ -46,6 +46,9 @@ function App() {
 
   const [showHome, setShowHome] = useState(true);
 
+  // 多图轮播状态
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
   // 初始化时读取本地存储的历史记录
   useEffect(() => {
     const saved = localStorage.getItem('generation_history');
@@ -70,16 +73,20 @@ function App() {
     setResult(null);
     setProgress(0);
     setError(null);
+    setCurrentImageIndex(0);
   };
 
   const loadHistory = (item: HistoryItem) => {
     if (loading) return;
     setCurrentId(item.id);
     setPrompt(item.prompt);
-    setResult({ image: item.image, prompt: item.prompt, params: {} });
+    // 兼容旧的历史记录数据结构 (单图)
+    const itemImages = item.images || ((item as any).image ? [(item as any).image] : []);
+    setResult({ images: itemImages, prompt: item.prompt, params: {} });
     setPreviewImage(null);
     setProgress(0);
     setError(null);
+    setCurrentImageIndex(0);
   };
 
   // 当勾选 HPC 时，请求本地的一个接口来自动建立隧道
@@ -117,18 +124,20 @@ function App() {
         setProgress(currentProgress);
         if (currentProgress >= 100) {
           clearInterval(interval);
+          const mockImages = Array(numImages).fill("https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?q=80&w=1000&auto=format&fit=crop");
           const newResult = {
-            image: "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?q=80&w=1000&auto=format&fit=crop",
+            images: mockImages,
             prompt: prompt,
             params: {}
           };
           setResult(newResult);
+          setCurrentImageIndex(0);
           
           // 保存到历史记录
           const newItem: HistoryItem = {
             id: newId,
             prompt: prompt,
-            image: newResult.image,
+            images: newResult.images,
             timestamp: Date.now()
           };
           setHistory(prev => [newItem, ...prev]);
@@ -165,21 +174,22 @@ function App() {
             setPreviewImage(data.preview);
           }
         } else if (data.type === 'final') {
-          // 如果后端返回的是数组，取第一张展示（当前UI结构限制）
-          const finalImage = Array.isArray(data.images) ? data.images[0] : data.image;
+          // 处理后端返回的多图或者单图
+          const finalImages = Array.isArray(data.images) ? data.images : (data.image ? [data.image] : []);
           
           const newResult = {
-            image: finalImage,
+            images: finalImages,
             prompt: prompt,
             params: {}
           };
           setResult(newResult);
+          setCurrentImageIndex(0);
           
           // 保存到历史记录
           const newItem: HistoryItem = {
             id: newId,
             prompt: prompt,
-            image: finalImage,
+            images: finalImages,
             timestamp: Date.now()
           };
           
@@ -219,10 +229,10 @@ function App() {
   };
 
   const handleDownload = () => {
-    if (!result) return;
+    if (!result || !result.images || result.images.length === 0) return;
     const link = document.createElement('a');
-    link.href = result.image;
-    link.download = `generated-${Date.now()}.png`;
+    link.href = result.images[currentImageIndex];
+    link.download = `imaginary-${Date.now()}-${currentImageIndex + 1}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -340,24 +350,58 @@ function App() {
         <main className="flex-1 w-full max-w-4xl mx-auto flex flex-col items-center justify-center p-4 pb-32 pt-20">
           {/* Result Area */}
           {(result || loading) ? (
-            <div className="w-full aspect-square md:aspect-video max-h-[65vh] flex items-center justify-center bg-zinc-50/50 border border-zinc-200/80 rounded-2xl relative overflow-hidden group animate-in fade-in zoom-in-95 duration-300 shadow-sm">
-            {result ? (
-              <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
-                <img
-                  src={result.image}
-                  alt={result.prompt}
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-xl"
-                />
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={handleDownload}
-                    className="bg-white/80 hover:bg-white text-zinc-800 p-2 rounded-lg backdrop-blur-sm transition-colors shadow-md border border-zinc-200"
-                  >
-                    <Download className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            ) : (
+                <div className="w-full aspect-square md:aspect-video max-h-[65vh] flex items-center justify-center bg-zinc-50/50 border border-zinc-200/80 rounded-2xl relative overflow-hidden group animate-in fade-in zoom-in-95 duration-300 shadow-sm">
+                  {result ? (
+                    <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
+                      <img
+                        src={result.images[currentImageIndex]}
+                        alt={result.prompt}
+                        className="max-w-full max-h-full object-contain rounded-lg shadow-xl transition-all duration-300"
+                      />
+                      
+                      {/* 多图切换控制 */}
+                      {result.images.length > 1 && (
+                        <>
+                          <button
+                            onClick={() => setCurrentImageIndex(prev => Math.max(0, prev - 1))}
+                            disabled={currentImageIndex === 0}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/80 hover:bg-white text-zinc-800 shadow-md border border-zinc-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed opacity-0 group-hover:opacity-100"
+                          >
+                            <ChevronLeft className="w-6 h-6" />
+                          </button>
+                          <button
+                            onClick={() => setCurrentImageIndex(prev => Math.min(result.images.length - 1, prev + 1))}
+                            disabled={currentImageIndex === result.images.length - 1}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/80 hover:bg-white text-zinc-800 shadow-md border border-zinc-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed opacity-0 group-hover:opacity-100"
+                          >
+                            <ChevronRight className="w-6 h-6" />
+                          </button>
+                          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md">
+                            {result.images.map((_, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => setCurrentImageIndex(idx)}
+                                className={cn(
+                                  "w-2 h-2 rounded-full transition-all",
+                                  currentImageIndex === idx ? "bg-white scale-125" : "bg-white/40 hover:bg-white/60"
+                                )}
+                              />
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={handleDownload}
+                          className="bg-white/80 hover:bg-white text-zinc-800 p-2 rounded-lg backdrop-blur-sm transition-colors shadow-md border border-zinc-200"
+                          title="Download Current Image"
+                        >
+                          <Download className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
               <div className="relative w-full h-full flex flex-col items-center justify-center p-4">
                 {previewImage ? (
                   <div className="relative w-full h-full flex flex-col items-center justify-center">
