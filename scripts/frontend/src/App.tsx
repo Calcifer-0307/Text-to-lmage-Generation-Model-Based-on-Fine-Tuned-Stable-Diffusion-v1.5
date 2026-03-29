@@ -87,11 +87,10 @@ function App() {
 
   // 历史记录更新时保存到本地
   useEffect(() => {
-    if (history.length > 0) {
-      localforage.setItem('generation_history', history).catch(err => {
-        console.error('Failed to save history to IndexedDB', err);
-      });
-    }
+    // 只有当 history 发生变化时才保存，如果为空数组也需要保存（用于覆盖清空）
+    localforage.setItem('generation_history', history).catch(err => {
+      console.error('Failed to save history to IndexedDB', err);
+    });
   }, [history]);
 
   // 清除所有历史记录
