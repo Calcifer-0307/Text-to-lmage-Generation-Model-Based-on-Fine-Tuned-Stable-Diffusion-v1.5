@@ -1,12 +1,19 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Loader2, Download, Image as ImageIcon, Sparkles, Settings2, XCircle, MessageSquarePlus, MessageSquare, Menu, PanelLeftClose, PanelLeftOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Download, Image as ImageIcon, Sparkles, Settings2, XCircle, MessageSquarePlus, MessageSquare, Menu, PanelLeftClose, PanelLeftOpen, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import localforage from 'localforage';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+// 配置 localforage
+localforage.config({
+  name: 'ImaginaryAI',
+  storeName: 'generations'
+});
 
 interface GenerateResponse {
   images: string[]; // 改为数组以支持多图
@@ -51,20 +58,71 @@ function App() {
 
   // 初始化时读取本地存储的历史记录
   useEffect(() => {
-    const saved = localStorage.getItem('generation_history');
-    if (saved) {
+    const loadHistory = async () => {
       try {
-        setHistory(JSON.parse(saved));
+        const saved = await localforage.getItem<HistoryItem[]>('generation_history');
+        if (saved) {
+          setHistory(saved);
+        }
       } catch (e) {
-        console.error('Failed to parse history', e);
+        console.error('Failed to load history from IndexedDB', e);
+        
+        // 回退机制：尝试从 localStorage 读取旧数据并迁移
+        const legacySaved = localStorage.getItem('generation_history');
+        if (legacySaved) {
+          try {
+            const parsed = JSON.parse(legacySaved);
+            setHistory(parsed);
+            await localforage.setItem('generation_history', parsed);
+            localStorage.removeItem('generation_history'); // 迁移后清理
+          } catch (legacyErr) {
+            console.error('Failed to parse legacy history', legacyErr);
+          }
+        }
       }
-    }
+    };
+    
+    loadHistory();
   }, []);
 
   // 历史记录更新时保存到本地
   useEffect(() => {
-    localStorage.setItem('generation_history', JSON.stringify(history));
+    if (history.length > 0) {
+      localforage.setItem('generation_history', history).catch(err => {
+        console.error('Failed to save history to IndexedDB', err);
+      });
+    }
   }, [history]);
+
+  // 清除所有历史记录
+  const clearHistory = async () => {
+    if (window.confirm('Are you sure you want to clear all history? This cannot be undone.')) {
+      try {
+        await localforage.removeItem('generation_history');
+        setHistory([]);
+        if (currentId) {
+          startNew();
+        }
+      } catch (e) {
+        console.error('Failed to clear history', e);
+      }
+    }
+  };
+
+  // 删除单条历史记录
+  const deleteHistoryItem = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const newHistory = history.filter(item => item.id !== id);
+    setHistory(newHistory);
+    try {
+      await localforage.setItem('generation_history', newHistory);
+      if (currentId === id) {
+        startNew();
+      }
+    } catch (err) {
+      console.error('Failed to delete history item', err);
+    }
+  };
 
   const startNew = () => {
     setCurrentId(null);
@@ -306,8 +364,20 @@ function App() {
           </button>
 
           <div className="flex-1 overflow-y-auto mt-4 -mx-2 px-2 space-y-1">
-            <div className="px-3 py-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1">
-              History
+            <div className="flex items-center justify-between px-3 py-2 mb-1">
+              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                History
+              </span>
+              {history.length > 0 && (
+                <button
+                  onClick={clearHistory}
+                  className="text-xs text-zinc-400 hover:text-red-500 transition-colors flex items-center gap-1"
+                  title="Clear all history"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Clear
+                </button>
+              )}
             </div>
             {history.length === 0 && (
               <div className="text-center text-xs text-zinc-400 mt-4">
@@ -315,19 +385,35 @@ function App() {
               </div>
             )}
             {history.map(item => (
-              <button
+              <div
                 key={item.id}
-                onClick={() => loadHistory(item)}
                 className={cn(
-                  "w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-lg text-sm transition-colors group",
+                  "relative w-full flex items-center group rounded-lg transition-colors",
                   currentId === item.id 
-                    ? "bg-zinc-200 text-zinc-900 font-medium" 
-                    : "text-zinc-600 hover:bg-zinc-100"
+                    ? "bg-zinc-200" 
+                    : "hover:bg-zinc-100"
                 )}
               >
-                <MessageSquare className={cn("w-4 h-4 shrink-0", currentId === item.id ? "text-zinc-700" : "text-zinc-400 group-hover:text-zinc-600")} />
-                <span className="truncate">{item.prompt}</span>
-              </button>
+                <button
+                  onClick={() => loadHistory(item)}
+                  className={cn(
+                    "flex-1 flex items-center gap-3 text-left px-3 py-2.5 text-sm",
+                    currentId === item.id 
+                      ? "text-zinc-900 font-medium" 
+                      : "text-zinc-600"
+                  )}
+                >
+                  <MessageSquare className={cn("w-4 h-4 shrink-0", currentId === item.id ? "text-zinc-700" : "text-zinc-400 group-hover:text-zinc-600")} />
+                  <span className="truncate">{item.prompt}</span>
+                </button>
+                <button
+                  onClick={(e) => deleteHistoryItem(e, item.id)}
+                  className="p-2 opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-red-500 transition-all absolute right-0"
+                  title="Delete item"
+                >
+                  <XCircle className="w-4 h-4" />
+                </button>
+              </div>
             ))}
           </div>
         </div>
