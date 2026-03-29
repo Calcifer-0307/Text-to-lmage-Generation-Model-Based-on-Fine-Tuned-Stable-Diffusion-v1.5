@@ -118,13 +118,18 @@ function App() {
     // If mock backend is enabled, simulate generation locally
     if (useMock) {
       // 模拟多张图片（前端UI目前只展示第一张，后续可以扩展为画廊）
+      // ... 保持原有逻辑不变
       let currentProgress = 0;
       const interval = setInterval(() => {
         currentProgress += 5;
         setProgress(currentProgress);
         if (currentProgress >= 100) {
           clearInterval(interval);
-          const mockImages = Array(numImages).fill("https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?q=80&w=1000&auto=format&fit=crop");
+          // 这里动态生成 mock 图片数组，长度为当前滑块的值 numImages
+          const mockImages = Array.from({ length: numImages }).map((_, i) => 
+            `https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?q=80&w=1000&auto=format&fit=crop&sig=${Date.now()}_${i}` // 加上时间戳让 React 认为是不同的图
+          );
+          
           const newResult = {
             images: mockImages,
             prompt: prompt,
@@ -159,7 +164,7 @@ function App() {
           negative_prompt: negativePrompt,
           num_inference_steps: steps,
           guidance_scale: guidanceScale,
-          num_images_per_prompt: numImages, // 新增：传递生成数量
+          num_images_per_prompt: numImages, // 确保发送给后端的是当前的 numImages
           seed,
           mock: useMock
         }));
@@ -174,8 +179,13 @@ function App() {
             setPreviewImage(data.preview);
           }
         } else if (data.type === 'final') {
+          console.log("Received final data:", data); // Debug log
           // 处理后端返回的多图或者单图
-          const finalImages = Array.isArray(data.images) ? data.images : (data.image ? [data.image] : []);
+          const finalImages = Array.isArray(data.images) && data.images.length > 0 
+            ? data.images 
+            : (data.image ? [data.image] : []);
+          
+          console.log("Processed finalImages length:", finalImages.length); // Debug log
           
           const newResult = {
             images: finalImages,
