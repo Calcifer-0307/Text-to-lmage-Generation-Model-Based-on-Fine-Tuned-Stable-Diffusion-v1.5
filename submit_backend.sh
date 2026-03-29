@@ -22,7 +22,7 @@ echo "ssh -L 8001:${NODE_NAME}:8000 ruilingyuan@luhpc.ln.edu.hk"
 echo "====================================================================="
 
 # 进入项目目录
-cd ~/prj_ruilingyuan/Text-to-Image-Generation-Model-Based-on-Fine-Tuned-Stable-Diffusion-v1.5
+cd ~/prj_ruilingyuan/Text-to-lmage-Generation-Model-Based-on-Fine-Tuned-Stable-Diffusion-v1.5
 
 # 创建并激活虚拟环境 (复用 train 的 venv_hpc)
 if [ ! -d "venv_hpc" ]; then
