@@ -117,6 +117,10 @@ async def websocket_generate(websocket: WebSocket):
             loop=loop
         )
 
+        # 修复：确保 final_images 始终是一个列表，即使底层引擎返回了单张图片对象
+        if not isinstance(final_images, list):
+            final_images = [final_images]
+
         final_b64_images = []
         for img in final_images:
             buffered = io.BytesIO()
