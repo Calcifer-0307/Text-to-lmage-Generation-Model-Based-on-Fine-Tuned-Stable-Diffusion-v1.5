@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Loader2, Download, Image as ImageIcon, Sparkles, Settings2, XCircle, MessageSquarePlus, MessageSquare, Menu, PanelLeftClose, PanelLeftOpen, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
@@ -56,6 +56,9 @@ function App() {
   // 多图轮播状态
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // 标记是否已经完成首次从 IndexedDB 的加载
+  const isHistoryLoaded = useRef(false);
+
   // 初始化时读取本地存储的历史记录
   useEffect(() => {
     const loadHistory = async () => {
@@ -79,6 +82,8 @@ function App() {
             console.error('Failed to parse legacy history', legacyErr);
           }
         }
+      } finally {
+        isHistoryLoaded.current = true;
       }
     };
     
@@ -87,14 +92,20 @@ function App() {
 
   // 历史记录更新时保存到本地
   useEffect(() => {
-    // 只有当 history 发生变化时才保存，如果为空数组也需要保存（用于覆盖清空）
-    localforage.setItem('generation_history', history).catch(err => {
-      console.error('Failed to save history to IndexedDB', err);
-    });
+    // 只有在完成首次加载后，才允许将当前组件的 history 状态写入 IndexedDB
+    // 否则 React 初始的空数组会把 DB 里的数据清空！
+    if (isHistoryLoaded.current) {
+      localforage.setItem('generation_history', history).catch(err => {
+        console.error('Failed to save history to IndexedDB', err);
+      });
+    }
   }, [history]);
 
   // 清除所有历史记录
-  const clearHistory = async () => {
+  const clearHistory = async (e: React.MouseEvent) => {
+    // 阻止事件冒泡，防止触发其他可能影响渲染的事件
+    e.stopPropagation();
+    
     if (window.confirm('Are you sure you want to clear all history? This cannot be undone.')) {
       try {
         await localforage.removeItem('generation_history');
