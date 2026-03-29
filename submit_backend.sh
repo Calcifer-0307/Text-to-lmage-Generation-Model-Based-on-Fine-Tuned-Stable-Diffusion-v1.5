@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=SD_Backend
-#SBATCH --partition=gpu-a100
-#SBATCH --qos=qos-normal
+#SBATCH --partition=gpu-h100
+#SBATCH --qos=qos-gpu
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1
-#SBATCH --mem=16G                      
+#SBATCH --mem=64G                      
 #SBATCH --time=04:00:00                
 #SBATCH --output=logs/backend_%j.out
 
