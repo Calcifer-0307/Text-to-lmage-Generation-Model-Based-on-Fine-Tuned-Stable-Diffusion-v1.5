@@ -106,6 +106,7 @@ async def websocket_generate(websocket: WebSocket):
         # For now, we will generate the requested number of images and just return the first one
         # to match the frontend's current single-image view.
         num_images = data.get("num_images_per_prompt", 1)
+        print(f"DEBUG: Requested {num_images} images from frontend")
         
         final_images = await run_in_threadpool(
             engine.generate, 
@@ -119,7 +120,10 @@ async def websocket_generate(websocket: WebSocket):
 
         # 修复：确保 final_images 始终是一个列表，即使底层引擎返回了单张图片对象
         if not isinstance(final_images, list):
+            print("DEBUG: final_images is not a list, wrapping in list")
             final_images = [final_images]
+            
+        print(f"DEBUG: Processing {len(final_images)} images for base64 encoding")
 
         final_b64_images = []
         for img in final_images:

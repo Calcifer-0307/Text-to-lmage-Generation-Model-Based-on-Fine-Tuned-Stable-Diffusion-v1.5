@@ -66,6 +66,7 @@ class LunaraInferenceEngine:
             callback_on_step_end=latents_callback,
             callback_on_step_end_tensor_inputs=["latents"]
         )
-        # 目前前端仅支持展示单张图片，因此我们暂时只返回第一张
-        # 如果需要展示多图画廊，需要返回 result.images 数组并在后端做相应处理
-        return result.images[0]
+        print(f"DEBUG: Pipeline returning {len(result.images)} images")
+        
+        # 修改为返回完整的图片数组，以支持前端多图画廊
+        return result.images
