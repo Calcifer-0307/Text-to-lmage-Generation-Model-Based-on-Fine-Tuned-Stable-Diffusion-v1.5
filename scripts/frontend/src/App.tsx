@@ -86,113 +86,136 @@ function App() {
   const handleHPCChange = async (checked: boolean) => {
     setUseHPC(checked);
     if (checked) {
-      setTunnelStatus('connecting');
-      try {
-        const response = await fetch('http://localhost:3001/api/tunnel/start', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nodeName: hpcNodeName })
-        });
-        if (response.ok) {
-          setTunnelStatus('connected');
-        } else {
-          setTunnelStatus('error');
-          setError('Failed to start SSH tunnel. Is the local proxy server running?');
-          setUseHPC(false);
-        }
-      } catch (err) {
-        setTunnelStatus('error');
-        setError('Failed to connect to local proxy server. Make sure `npm run proxy` is running.');
-        setUseHPC(false);
-      }
+      // 既然用户已经手动建立好了隧道并且唤醒了后端，
+      // 前端这里其实不需要再调用代理去执行一次 python 脚本了。
+      // 我们直接把状态标记为 connected，这样 WebSocket 就会自动连到 8001 端口。
+      setTunnelStatus('connected');
     } else {
-      // 当不使用 HPC 时，恢复连接本地后端 8000 端口
       setTunnelStatus('idle');
-      try {
-        await fetch('http://localhost:3001/api/tunnel/stop', { method: 'POST' });
-      } catch (e) {
-        console.error("Failed to stop tunnel");
-      }
     }
   };
 
-  const handleGenerate = () => {
-    if (!prompt.trim()) return;
+  const handleGenerate = async () => {
+    if (!prompt.trim() || loading) return;
 
     setLoading(true);
     setError(null);
-    setProgress(0);
     setPreviewImage(null);
+    setProgress(0);
     setResult(null);
-
-    // 如果启用了 HPC 模式，假设本地通过 SSH 隧道映射了 HPC 的 8001 端口
-    // 你可以根据实际隧道映射的端口进行调整，这里默认 HPC 映射到本地 8001
-    const wsUrl = useHPC ? 'ws://localhost:8001/ws/generate' : 'ws://localhost:8000/ws/generate';
-    const ws = new WebSocket(wsUrl);
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({
-        prompt,
-        num_inference_steps: steps,
-        guidance_scale: guidanceScale,
-        seed: seed,
-        mock: useMock
-      }));
-    };
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.type === 'progress') {
-        setProgress(data.value);
-        if (data.preview) {
-          setPreviewImage(data.preview);
-        }
-      } else if (data.type === 'final') {
-        const newResult = {
-          image: data.image,
-          prompt: prompt,
-          params: {}
-        };
-        setResult(newResult);
-        
-        // 保存到历史记录
-        const newItem: HistoryItem = {
-          id: currentId || Date.now().toString(),
-          prompt: prompt,
-          image: data.image,
-          timestamp: Date.now()
-        };
-        
-        setHistory(prev => {
-          const exists = prev.find(p => p.id === newItem.id);
-          if (exists) {
-            return prev.map(p => p.id === newItem.id ? newItem : p);
-          }
-          return [newItem, ...prev];
-        });
-        setCurrentId(newItem.id);
-
-        setLoading(false);
-        ws.close();
-      } else if (data.type === 'error') {
-        setError(data.message || 'Failed to generate image.');
-        setLoading(false);
-        ws.close();
-      }
-    };
-
-    ws.onerror = (err) => {
-      console.error('WebSocket error:', err);
-      setError('Connection to server failed. Ensure backend is running.');
-      setLoading(false);
-    };
     
-    ws.onclose = () => {
-      if (loading) {
-         setLoading(false);
-      }
-    };
+    // 生成新的 ID
+    const newId = Date.now().toString();
+    setCurrentId(newId);
+
+    // If mock backend is enabled, simulate generation locally
+    if (useMock) {
+      // 模拟多张图片（前端UI目前只展示第一张，后续可以扩展为画廊）
+      let currentProgress = 0;
+      const interval = setInterval(() => {
+        currentProgress += 5;
+        setProgress(currentProgress);
+        if (currentProgress >= 100) {
+          clearInterval(interval);
+          const newResult = {
+            image: "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?q=80&w=1000&auto=format&fit=crop",
+            prompt: prompt,
+            params: {}
+          };
+          setResult(newResult);
+          
+          // 保存到历史记录
+          const newItem: HistoryItem = {
+            id: newId,
+            prompt: prompt,
+            image: newResult.image,
+            timestamp: Date.now()
+          };
+          setHistory(prev => [newItem, ...prev]);
+          
+          setLoading(false);
+        }
+      }, 100);
+      return;
+    }
+
+    try {
+      const targetPort = useHPC ? '8001' : '8000';
+      const ws = new WebSocket(`ws://localhost:${targetPort}/ws/generate`);
+      
+      ws.onopen = () => {
+        // 将 numImages 作为参数传给后端
+        ws.send(JSON.stringify({
+          prompt,
+          negative_prompt: negativePrompt,
+          num_inference_steps: steps,
+          guidance_scale: guidanceScale,
+          num_images_per_prompt: numImages, // 新增：传递生成数量
+          seed,
+          mock: useMock
+        }));
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'progress') {
+          setProgress(data.value);
+          if (data.preview) {
+            setPreviewImage(data.preview);
+          }
+        } else if (data.type === 'final') {
+          // 如果后端返回的是数组，取第一张展示（当前UI结构限制）
+          const finalImage = Array.isArray(data.images) ? data.images[0] : data.image;
+          
+          const newResult = {
+            image: finalImage,
+            prompt: prompt,
+            params: {}
+          };
+          setResult(newResult);
+          
+          // 保存到历史记录
+          const newItem: HistoryItem = {
+            id: newId,
+            prompt: prompt,
+            image: finalImage,
+            timestamp: Date.now()
+          };
+          
+          setHistory(prev => {
+            const exists = prev.find(p => p.id === newItem.id);
+            if (exists) {
+              return prev.map(p => p.id === newItem.id ? newItem : p);
+            }
+            return [newItem, ...prev];
+          });
+
+          setLoading(false);
+          ws.close();
+        } else if (data.type === 'error') {
+          setError(data.error || data.message || 'Failed to generate image.');
+          setLoading(false);
+          ws.close();
+        }
+      };
+
+      ws.onerror = (err) => {
+        console.error('WebSocket error:', err);
+        setError("WebSocket connection failed. Is the backend running?");
+        setLoading(false);
+      };
+
+      ws.onclose = () => {
+        if (loading) {
+          setError("Connection closed unexpectedly.");
+          setLoading(false);
+        }
+      };
+    } catch (err) {
+      setError("Failed to start generation.");
+      setLoading(false);
+    }
   };
 
   const handleDownload = () => {
@@ -485,33 +508,26 @@ function App() {
                   </label>
                   <label className="flex flex-col gap-2 mt-2 p-3 bg-zinc-50 rounded-lg border border-zinc-200 transition-colors hover:bg-zinc-100/50">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={useHPC}
-                          onChange={(e) => handleHPCChange(e.target.checked)}
-                          disabled={tunnelStatus === 'connecting'}
-                          className="rounded bg-zinc-50 border-zinc-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50"
-                        />
-                        <span className="text-sm font-medium text-zinc-700">Use HPC (Auto SSH Tunnel)</span>
-                      </div>
-                      {tunnelStatus === 'connecting' && <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />}
-                      {tunnelStatus === 'connected' && <span className="text-xs text-green-600 font-medium px-2 py-1 bg-green-100 rounded">Connected</span>}
-                    </div>
-                    {useHPC && tunnelStatus !== 'connected' && (
-                      <div className="mt-2 pl-6">
-                        <input
-                          type="text"
-                          value={hpcNodeName}
-                          onChange={(e) => setHpcNodeName(e.target.value)}
-                          placeholder="Compute Node (e.g., hpcgpu107)"
-                          className="w-full bg-white border border-zinc-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-500"
-                        />
-                        <p className="text-[10px] text-zinc-500 mt-1">
-                          Check `submit_backend.sh` logs for the node name. Leave as `localhost` if running on login node.
-                        </p>
-                      </div>
-                    )}
+                            <div className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={useHPC}
+                                onChange={(e) => handleHPCChange(e.target.checked)}
+                                className="rounded bg-zinc-50 border-zinc-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50"
+                              />
+                              <span className="text-sm font-medium text-zinc-700">Use HPC (Local SSH Tunnel)</span>
+                            </div>
+                            {tunnelStatus === 'connected' && <span className="text-xs text-green-600 font-medium px-2 py-1 bg-green-100 rounded">Connected</span>}
+                          </div>
+                          {useHPC && (
+                            <div className="mt-2 pl-6">
+                              <p className="text-[10px] text-zinc-500 mt-1">
+                                Please ensure you have run the ssh tunnel command in your terminal:
+                                <br/>
+                                <code className="bg-zinc-200 px-1 rounded">ssh -L 8001:hpcgpuXXX:8000 ...</code>
+                              </p>
+                            </div>
+                          )}
                   </label>
                 </div>
               </div>

@@ -38,7 +38,7 @@ class LunaraInferenceEngine:
             return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
     # 💡 注意：这里改成了普通函数 def，不再是 async def
-    def generate(self, prompt, num_steps=25, seed=42, progress_callback=None, loop=None):
+    def generate(self, prompt, num_steps=25, seed=42, num_images=1, progress_callback=None, loop=None):
         generator = torch.Generator(device=self.device).manual_seed(seed)
         
         def latents_callback(pipe, step, timestep, callback_kwargs):
@@ -61,8 +61,11 @@ class LunaraInferenceEngine:
         result = self.pipe(
             prompt=prompt,
             num_inference_steps=num_steps,
+            num_images_per_prompt=num_images,
             generator=generator,
             callback_on_step_end=latents_callback,
             callback_on_step_end_tensor_inputs=["latents"]
         )
+        # 目前前端仅支持展示单张图片，因此我们暂时只返回第一张
+        # 如果需要展示多图画廊，需要返回 result.images 数组并在后端做相应处理
         return result.images[0]

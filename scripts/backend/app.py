@@ -100,11 +100,19 @@ async def websocket_generate(websocket: WebSocket):
             return
 
         print(f"Generating image via WS for prompt: {prompt}")
+        
+        # We currently only generate and return one image back to the UI per request,
+        # but the engine can be updated to handle `num_images_per_prompt` if we modify the return type.
+        # For now, we will generate the requested number of images and just return the first one
+        # to match the frontend's current single-image view.
+        num_images = data.get("num_images_per_prompt", 1)
+        
         final_image = await run_in_threadpool(
             engine.generate, 
             prompt=prompt, 
             num_steps=num_steps,
             seed=seed, 
+            num_images=num_images,
             progress_callback=send_progress,
             loop=loop
         )
