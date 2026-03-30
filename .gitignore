@@ -26,7 +26,9 @@ logs/
 *.err
 
 scripts/fine_tuning/checkpoint/**
+scripts/fine_tuning/checkpoint_v2/**
 !scripts/fine_tuning/checkpoint/.gitkeep
+!scripts/fine_tuning/checkpoint_v2/.gitkeep
 
 # 前端构建和依赖
 scripts/frontend/node_modules/
@@ -36,3 +38,5 @@ scripts/frontend/.eslintcache
 # 其他模型检查点
 scripts/checkpoint/**
 !scripts/checkpoint/.gitkeep
+
+venv_hpc
