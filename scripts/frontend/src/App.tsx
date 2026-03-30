@@ -384,16 +384,18 @@ function App() {
               </div>
               
               <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl shadow-2xl">
-                <div className="relative rounded-2xl overflow-hidden aspect-[16/9] md:aspect-[21/9] bg-zinc-900">
-                  <ReactCompareSlider
-                    itemOne={<ReactCompareSliderImage src={showcaseData[showcaseIndex].base} alt="Base Model" />}
-                    itemTwo={<ReactCompareSliderImage src={showcaseData[showcaseIndex].lora} alt="LoRA Fine-tuned" />}
-                    className="w-full h-full"
-                  />
-                  <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-semibold text-zinc-300 border border-white/10 shadow-lg pointer-events-none">
+                <div className="relative rounded-2xl overflow-hidden bg-zinc-900 flex justify-center items-center">
+                  <div className="w-full max-w-[512px] aspect-square">
+                    <ReactCompareSlider
+                      itemOne={<ReactCompareSliderImage src={showcaseData[showcaseIndex].base} alt="Base Model" className="object-contain w-full h-full" />}
+                      itemTwo={<ReactCompareSliderImage src={showcaseData[showcaseIndex].lora} alt="LoRA Fine-tuned" className="object-contain w-full h-full" />}
+                      className="w-full h-full rounded-lg shadow-inner"
+                    />
+                  </div>
+                  <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-semibold text-zinc-300 border border-white/10 shadow-lg pointer-events-none z-10">
                     Base SD 1.5
                   </div>
-                  <div className="absolute top-4 right-4 bg-purple-600/80 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-semibold text-white border border-purple-400/30 shadow-[0_0_15px_rgba(168,85,247,0.5)] pointer-events-none">
+                  <div className="absolute top-4 right-4 bg-purple-600/80 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-semibold text-white border border-purple-400/30 shadow-[0_0_15px_rgba(168,85,247,0.5)] pointer-events-none z-10">
                     + Our Custom LoRA
                   </div>
                 </div>
