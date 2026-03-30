@@ -4,6 +4,7 @@ import { Loader2, Download, Image as ImageIcon, Sparkles, Settings2, XCircle, Me
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import localforage from 'localforage';
+import { ReactCompareSlider, ReactCompareSliderImage } from 'react-compare-slider';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -55,6 +56,27 @@ function App() {
 
   // 多图轮播状态
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
+  // Showcase 控制状态
+  const [showcaseIndex, setShowcaseIndex] = useState(0);
+
+  const showcaseData = [
+    {
+      prompt: "A young girl, dark hair, golden light, coastal backdrop, painterly style, 8k resolution.",
+      base: "/showcase/base_1.png",
+      lora: "/showcase/lora_1.png"
+    },
+    {
+      prompt: "Alpine village at twilight, snow-dusted rooftops, glowing amber windows, soft-focus telephoto lens, tranquil winter mood.",
+      base: "/showcase/base_2.png",
+      lora: "/showcase/lora_2.png"
+    },
+    {
+      prompt: "Sunset over bamboo forest, golden light filtering through leaves, serene path, 50mm lens.",
+      base: "/showcase/base_3.png",
+      lora: "/showcase/lora_3.png"
+    }
+  ];
 
   // 标记是否已经完成首次从 IndexedDB 的加载
   const isHistoryLoaded = useRef(false);
@@ -346,12 +368,56 @@ function App() {
             <div className="pt-8 animate-in fade-in zoom-in-95 duration-700 delay-500">
               <button
                 onClick={() => setShowHome(false)}
-                className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-lg font-semibold text-white bg-white/10 border border-white/20 rounded-full overflow-hidden transition-all hover:scale-105 hover:bg-white/20 active:scale-95"
+                className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 text-lg font-semibold text-white bg-white/10 border border-white/20 rounded-full overflow-hidden transition-all hover:scale-105 hover:bg-white/20 active:scale-95 shadow-[0_0_40px_rgba(168,85,247,0.4)]"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <span className="relative z-10">Start Creating</span>
                 <Sparkles className="w-5 h-5 relative z-10 group-hover:rotate-12 transition-transform" />
               </button>
+            </div>
+            
+            {/* Showcase Section */}
+            <div className="mt-20 w-full max-w-5xl animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-700">
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-zinc-200 to-zinc-500">Why Imaginary AI?</h2>
+                <p className="text-zinc-400 mt-2">Experience the difference our custom LoRA fine-tuning makes.</p>
+              </div>
+              
+              <div className="bg-white/5 border border-white/10 rounded-3xl p-6 backdrop-blur-xl shadow-2xl">
+                <div className="relative rounded-2xl overflow-hidden aspect-[16/9] md:aspect-[21/9] bg-zinc-900">
+                  <ReactCompareSlider
+                    itemOne={<ReactCompareSliderImage src={showcaseData[showcaseIndex].base} alt="Base Model" />}
+                    itemTwo={<ReactCompareSliderImage src={showcaseData[showcaseIndex].lora} alt="LoRA Fine-tuned" />}
+                    className="w-full h-full"
+                  />
+                  <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-semibold text-zinc-300 border border-white/10 shadow-lg pointer-events-none">
+                    Base SD 1.5
+                  </div>
+                  <div className="absolute top-4 right-4 bg-purple-600/80 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-semibold text-white border border-purple-400/30 shadow-[0_0_15px_rgba(168,85,247,0.5)] pointer-events-none">
+                    + Our Custom LoRA
+                  </div>
+                </div>
+                
+                <div className="mt-6 flex flex-col items-center gap-4">
+                  <p className="text-sm md:text-base text-zinc-300 text-center italic max-w-3xl px-4">
+                    "{showcaseData[showcaseIndex].prompt}"
+                  </p>
+                  
+                  <div className="flex items-center gap-2">
+                    {showcaseData.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setShowcaseIndex(idx)}
+                        className={cn(
+                          "w-2.5 h-2.5 rounded-full transition-all duration-300",
+                          showcaseIndex === idx ? "bg-purple-500 scale-125 w-6" : "bg-white/20 hover:bg-white/40"
+                        )}
+                        aria-label={`Showcase image ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
