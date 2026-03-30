@@ -62,19 +62,19 @@ function App() {
 
   const showcaseData = [
     {
-      prompt: "A young girl, dark hair, golden light, coastal backdrop, painterly style, 8k resolution.",
-      base: "/showcase/base_1.png",
-      lora: "/showcase/lora_1.png"
+      prompt: "Coastal cliffside cottage, golden hour, soft waves, painterly style, wide lens, serene mood.",
+      base: "/showcase/pic1a.png",
+      lora: "/showcase/pic1b.png"
     },
     {
       prompt: "Alpine village at twilight, snow-dusted rooftops, glowing amber windows, soft-focus telephoto lens, tranquil winter mood.",
-      base: "/showcase/base_2.png",
-      lora: "/showcase/lora_2.png"
+      base: "/showcase/pic2a.png",
+      lora: "/showcase/pic2b.png"
     },
     {
       prompt: "Sunset over bamboo forest, golden light filtering through leaves, serene path, 50mm lens.",
-      base: "/showcase/base_3.png",
-      lora: "/showcase/lora_3.png"
+      base: "/showcase/pic3a.png",
+      lora: "/showcase/pic3b.png"
     }
   ];
 
