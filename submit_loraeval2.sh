@@ -17,7 +17,7 @@ for STEP in 0 500 1000 1500 2000 5000 10000 15000 20000 25000
 do
     echo "-----------------------------------"
     echo "Start step $STEP evaluation..."
-    python scripts/fine_tuning/eval.py --seed 0 --step $STEP --prompt "A photo of a cat."
+    python scripts/fine_tuning/eval2.py --seed 42 --step $STEP --prompt "Alpine village at twilight, snow-dusted rooftops, glowing amber windows, soft-focus telephoto lens, tranquil winter mood."
     echo "Finish Step $STEP。"
 done
 

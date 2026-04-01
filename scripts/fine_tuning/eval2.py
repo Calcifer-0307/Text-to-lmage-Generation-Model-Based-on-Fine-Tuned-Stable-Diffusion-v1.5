@@ -8,7 +8,7 @@ from diffusers import StableDiffusionPipeline
 def evaluate():
     parser = argparse.ArgumentParser()
     # 默认步数可以根据你的训练情况调整
-    parser.add_argument("--step", type=int, default=5000, help="Checkpoint step. Use 0 for base model. Use step number for LoRA model.")
+    parser.add_argument("--step", type=int, default=25000, help="Checkpoint step. Use 0 for base model. Use step number for LoRA model.")
     parser.add_argument(
         "--prompt", 
         type=str, 
