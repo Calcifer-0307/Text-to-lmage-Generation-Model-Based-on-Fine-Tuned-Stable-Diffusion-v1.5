@@ -127,43 +127,59 @@ python scripts/model_verification/forward_components.py
 - VAE Decoder: 将潜在空间向量解码为图像
 - Scheduler: 控制去噪步骤和时间步
 
-### 阶段3: 模型微调
+### 阶段3: 模型微调 (Model Fine-Tuning)
 
-运行数据适配测试
+在此阶段，我们利用 LoRA (Low-Rank Adaptation) 技术对 Stable Diffusion v1.5 进行风格化微调。本项目提供了两种微调策略：仅微调 UNet 以及 UNet + Text Encoder 联合微调。
 
+#### 3.1 预训练验证 (Pre-training Validation)
+
+在正式开启大规模训练前，建议依次运行以下脚本以验证数据流水线与 LoRA 注入逻辑：
+
+*   **数据适配器测试**：检查图像 Resize/Normalize 及文本 Tokenization 是否符合模型预期。
+    ```bash
+    python scripts/fine_tuning/dataset_adapter.py
+    ```
+*   **单图过拟合微调测试**：确保训练代码、损失函数及权重更新逻辑正常。若模型能完美复现单张训练图，则证明微调环境已就绪。
+    ```bash
+    python scripts/fine_tuning/train_overfit.py
+    ```
+
+#### 3.2 执行微调训练 (Training Execution)
+
+微调产生的 Checkpoints 将自动保存在 `scripts/fine_tuning/checkpoint/` 路径下。
+
+*   **策略 A：UNet LoRA 微调**
+    重点学习视觉布局与画面整体风格。
+    ```bash
+    python scripts/fine_tuning/train_lora.py
+    ```
+*   **策略 B：UNet + Text Encoder 联合微调**
+    深度学习语义关联，使模型生成的图像在细腻质感和 Prompt 匹配度上表现更佳。
+    ```bash
+    python scripts/fine_tuning/train_lora2.py
+    ```
+
+#### 3.3 修复权重配置文件 (Critical Fix)
+
+**注意（必须执行）**：由于训练包装器在保存时会产生命名空间前缀（如 `base_model.model`），直接加载会导致层名不匹配。推理前必须运行修复脚本以移除多余前缀：
 ```bash
-python scripts/fine_tuning/dataset_adapter.py
+python scripts/fine_tuning/fix_configs.py
 ```
 
-运行过拟合微调测试
+#### 3.4 模型推理评估 (Evaluation)
 
-```bash
-python scripts/fine_tuning/train_overfit.py
-```
+使用微调后的模型进行生成测试，建议通过 `--step` 参数对比不同训练步数的生成质量：
 
-过拟合测试用来确保训练代码、损失函数、权重更新逻辑以及LoRA注入完全正常。如果模型连一张图都记不住，那么后续的大规模训练就没有任何意义
-
-进行UNet的Fine-Tuning训练
-
-```bash
-python scripts/fine_tuning/train_lora.py
-```
-
-训练过程中的checkpoint将保存在scripts/fine\_tuning/checkpoint路径下
-
-修复权重配置文件
-
-```bash
- python scripts/fine_tuning/fix_configs.py
-```
-
-执行LoRA注入的推理测试
-
-```bash
-python scripts/fine_tuning/eval.py --prompt "Coastal cliffside cottage, golden hour, soft waves, painterly style, wide lens, serene mood."
-```
-
-LoRA注入模型的推理结果将保存到output/eval\_results路径下
+*   **测试 UNet 微调模型效果**：
+    推理结果保存于 `output/eval_results/`。
+    ```bash
+    python scripts/fine_tuning/eval.py --step 25000 --prompt "Coastal cliffside cottage, golden hour, soft waves, painterly style, wide lens, serene mood."
+    ```
+*   **测试联合微调模型效果**：
+    推理结果保存于 `output/eval_results_v2/`。
+    ```bash
+    python scripts/fine_tuning/eval2.py --step 25000 --prompt "Coastal cliffside cottage, golden hour, soft waves, painterly style, wide lens, serene mood."
+    ```
 
 ### 阶段4: 部署实时生成服务 (Imaginary AI)
 
