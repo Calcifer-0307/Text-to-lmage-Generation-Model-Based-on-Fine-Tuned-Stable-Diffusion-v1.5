@@ -20,14 +20,17 @@
   - **model\_verification/** 阶段2 - Stable Diffusion 前向传播验证
     - `test_forward.py`：最小化前向推理示例
     - `forward_components.py`：深入理解 SD 各组件（Text Encoder、UNet、VAE、Scheduler）
-  - **fine\_tuning/**：阶段3 - LoRA 微调训练（筹备中）
+  - **fine\_tuning/**：阶段3 - LoRA 微调训练
     - `dataset_adapter.py`：数据适配层 - 图像/文本预处理及 DataLoader 工厂
-    - `train_overfit.py`：LoRA 过拟合测试
-    - `train_lora.py`：LoRA 微调训练脚本
+    - `train_overfit.py`：LoRA (UNet) 过拟合测试
+    - `train_lora.py`：LoRA (UNet) 微调训练脚本
+    - `train_lora2.py`：LoRA (UNet + Text Encoder) 微调训练脚本
     - `fix_configs.py`：关键脚本，用于修复 LoRA 配置中的命名空间冲突。
-    - `eval.py`：模型评估脚本
+    - `eval.py`：LoRA (UNet) 注入模型评估脚本
+    - `eval2.py`：LoRA (UNet + Text Encoder) 模型评估脚本
     - `inference_engine.py`：高性能推理引擎，支持多线程去噪与实时回调
-    - `checkpoint/`：LoRA 微调权重保存目录
+    - `checkpoint/`：LoRA (UNet) 微调权重保存目录
+    - `checkpoint_v2/`：LoRA (UNet + Text Encoder) 微调权重保存目录
 - **output/**：模型推理输出文件
 
 ## 项目进度
