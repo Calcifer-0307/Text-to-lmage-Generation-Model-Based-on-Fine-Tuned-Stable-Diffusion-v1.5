@@ -388,7 +388,7 @@ function App() {
               
               <div className="bg-white/5 border border-white/10 rounded-3xl p-3 md:p-5 backdrop-blur-xl shadow-2xl flex flex-col items-center w-full max-w-[800px]">
                 <div className="relative rounded-2xl overflow-hidden bg-zinc-900 flex justify-center items-center w-full">
-                  <div className="w-full max-w-[400px] md:max-w-[480px] aspect-square relative flex justify-center items-center">
+                  <div className="w-full max-w-[360px] md:max-w-[420px] aspect-square relative flex justify-center items-center">
                     <ReactCompareSlider
                       itemOne={<ReactCompareSliderImage src={showcaseData[showcaseIndex].base} alt="Base Model" className="object-cover w-full h-full" />}
                       itemTwo={<ReactCompareSliderImage src={showcaseData[showcaseIndex].lora} alt="LoRA Fine-tuned" className="object-cover w-full h-full" />}
