@@ -1,3 +1,5 @@
+import time
+from matplotlib.pyplot import step
 import torch
 import io
 import base64
@@ -33,6 +35,8 @@ class LunaraInferenceEngine:
             image = (image[0] * 255).astype("uint8")
             pil_img = Image.fromarray(image)
             pil_img.thumbnail((256, 256)) 
+            # 将图片保存到output/real_time_preview路径下
+            pil_img.save(f"output/real_time_preview/preview_{time.time():f}.jpg")
             buffered = io.BytesIO()
             pil_img.save(buffered, format="JPEG", quality=60)
             return base64.b64encode(buffered.getvalue()).decode("utf-8")
